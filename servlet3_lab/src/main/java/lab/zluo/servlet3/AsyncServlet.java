@@ -12,7 +12,10 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
- *
+ * This example demonstrate how to async servlet works.
+ * 1. Create a AsyncContext from request.
+ * 2. Add a AsyncListener to AsyncContext
+ * 3.
  */
 @WebServlet(urlPatterns = {"/async"}, asyncSupported = true)
 public class AsyncServlet extends HttpServlet {
@@ -20,51 +23,55 @@ public class AsyncServlet extends HttpServlet {
     private static final Queue queue = new ConcurrentLinkedQueue();
 
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+
+        System.out.println("---------------------- Async Servlet Diagram ---------------------------");
+        System.out.println("Client->AsyncServlet:doGet(Request, Response)");
+        System.out.println("Request->*AsyncContext:startAsync()");
+
         final AsyncContext ac = request.startAsync();
         ac.setTimeout(1*60*1000);
         ac.addListener(new AsyncListener() {
             @Override
             public void onComplete(AsyncEvent asyncEvent) throws IOException {
-                System.out.println("onComplete");
+                //System.out.println("-> onComplete");
             }
 
             @Override
             public void onTimeout(AsyncEvent asyncEvent) throws IOException {
-                System.out.println("onTimeout");
+                //System.out.println("-> onTimeout");
             }
 
             @Override
             public void onError(AsyncEvent asyncEvent) throws IOException {
-                System.out.println("onError");
+                //System.out.println("-> onError");
             }
 
             @Override
             public void onStartAsync(AsyncEvent asyncEvent) throws IOException {
-                System.out.println("onStartAsync");
+                //System.out.println("-> onStartAsync");
             }
 
         });
+
+        System.out.println("AsyncContext->New Thread:start()");
         ac.start(new Runnable() {
             @Override
             public void run() {
                 try {
-                    System.out.println("Run Async");
+                    System.out.println("New Thread->+Job:doJob()");
                     Thread.sleep(5000);
-                    System.out.println("Finish Run Async");
+                    System.out.println("Job->New Thread");
+
                     ac.getRequest().setAttribute("res", "Response: " + System.currentTimeMillis());
+                    ServletResponse resp =ac.getResponse();
+                    resp.getWriter().println("Async Response Content");
+                    resp.flushBuffer();
+                    System.out.println("AsyncServlet->Client:Async Response");
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
         });
-        //if (request.getAttribute("res") != null){
-        //    System.out.println(request.getAttribute("res"));
-         //   response.getWriter().println("Attribute: " + request.getAttribute("res"));
-        //}else{
-            System.out.println("Write response");
-            response.getWriter().println("Start Async Servlet");
-            response.flushBuffer();
-            System.out.println("Leave Servlet");
-        //}
+            System.out.println("note handle request: return doGet()");
     }
 }
